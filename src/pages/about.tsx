@@ -49,6 +49,7 @@ export default function About() {
             >
                 {isPlaying ? '🔊' : '🔇'}
             </button>
+
             <h1 style={{ fontSize: '2.5rem', marginBottom: '30px' }}>Sobre o Jogo</h1>
 
             <div style={{
@@ -68,33 +69,37 @@ export default function About() {
                     Um presente digital feito com carinho e tecnologia.
                 </p>
             </div>
-<div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '40%',
-                    backgroundImage: 'url(/assets/images/esquerda.png)',
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'left center',
-                    opacity: 0.2,
-                    zIndex: 1
-                }} />
 
-                <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '40%',
-                    backgroundImage: 'url(/assets/images/direita.png)',
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right center',
-                    opacity: 0.2,
-                    zIndex: 1
-                }} />
+            {/* Imagem esquerda grudada no rodapé */}
+            <div style={{
+                position: 'absolute',
+                left: 0,
+                bottom: 0,
+                height: '80%', // Ajuste a altura conforme necessário
+                width: '50%',
+                backgroundImage: 'url(/assets/images/esquerda.png)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'left bottom', // Alinhada ao rodapé
+                opacity: 0.2,
+                zIndex: 1
+            }} />
+
+            {/* Imagem direita grudada no rodapé */}
+            <div style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                height: '100%', // Ajuste a altura conforme necessário
+                width: '40%',
+                backgroundImage: 'url(/assets/images/direita.png)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right bottom', // Alinhada ao rodapé
+                opacity: 0.2,
+                zIndex: 1
+            }} />
+
             <Link href="/" passHref>
                 <button style={{
                     padding: '15px 30px',
@@ -106,6 +111,8 @@ export default function About() {
                     cursor: 'pointer',
                     boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
                     transition: 'all 0.3s',
+                    position: 'relative', // Garante que fique acima das imagens
+                    zIndex: 2
                 }}>
                     Voltar ao Menu
                 </button>
