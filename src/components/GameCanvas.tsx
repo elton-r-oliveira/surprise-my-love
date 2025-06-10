@@ -48,6 +48,30 @@ const GameCanvas: React.FC = () => {
         this.load.audio('bgm', '/assets/audio/bgm.mp3');
       }
 
+      showMessage(message: string) {
+        const padding = 10;
+        const width = 400;
+        const text = this.add.text(padding, padding, message, {
+          fontSize: '18px',
+          color: '#000',
+          wordWrap: { width: width - padding * 2 },
+          fontFamily: 'Arial',
+        });
+
+        const box = this.add.graphics();
+        box.fillStyle(0xffffff, 1);
+        box.fillRoundedRect(0, 0, width, text.height + padding * 2, 12);
+
+        const container = this.add.container(this.player.x, this.player.y - 150, [box, text]);
+        container.setScrollFactor(0);
+        container.setDepth(1000);
+
+        // Remove após 3 segundos
+        this.time.delayedCall(3000, () => {
+          container.destroy();
+        });
+      }
+
       create() {
         // Fundo infinito
         this.background = this.add.tileSprite(0, 0, 1600, 800, 'bg')
@@ -145,10 +169,11 @@ const GameCanvas: React.FC = () => {
         this.physics.add.overlap(this.player, this.hearts, (_player, heart) => {
           const h = heart as Phaser.Physics.Arcade.Sprite;
           const msg = h.getData('message') as string;
-          alert(msg);
+          this.showMessage(msg);
           h.destroy();
           this.score += 1;
           this.updateHUD();
+
         });
 
         // Chegou na princesa
@@ -182,7 +207,7 @@ const GameCanvas: React.FC = () => {
         (npc.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
         // Texto da fala
-        const npcText = this.add.text(0, 0, 'Olá, herói! Seja bem vinda, a essa aventura AWESOME em busca de sua amada, está preparada?', {
+        const npcText = this.add.text(0, 0, 'Olá, aventureira! Seja bem vinda, a essa jornada AWESOME em busca de sua amada, está preparada?', {
           fontSize: '18px',
           fontFamily: 'Arial',
           color: '#000',
@@ -211,17 +236,13 @@ const GameCanvas: React.FC = () => {
           balloon.setPosition(npc.x, npc.y - 120);
         });
 
-
-        // Ou sem imagem (visualmente invisíveis, mas funcionais)
-        const p1 = platforms.create(1800, 600, '');
-        p1.setSize(200, 40).setVisible(false);
-
-        const p2 = platforms.create(2200, 500, '');
-        p2.setSize(200, 40).setVisible(false);
-
         // Adiciona colisões com jogador e corações
         this.physics.add.collider(this.player, platforms);
         this.physics.add.collider(this.hearts, platforms);
+
+        // Define limites reais do mundo para evitar travar
+        this.physics.world.setBounds(0, 0, groundWidth * groundSegments, 800);
+        this.player.setCollideWorldBounds(true);
 
       }
 
