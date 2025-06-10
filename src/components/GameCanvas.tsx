@@ -1,10 +1,15 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
+import { useAudio } from '../contexts/AudioContext'; // Importe o hook useAudio
 
 const GameCanvas: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
+  const { stopAudio } = useAudio(); // Obtenha a função stopAudio do contexto
 
   useEffect(() => {
+    // Pare a música do menu antes de iniciar o jogo
+    stopAudio();
+
     if (gameRef.current) return;
 
     const messages: string[] = [
@@ -190,7 +195,7 @@ const GameCanvas: React.FC = () => {
         // Plataformas flutuantes
         const platforms = this.physics.add.staticGroup();
 
-        // Plataforma com imagem 
+        // Plataforma com imagem
         platforms.create(1200, 200, 'platform');
 
         this.anims.create({
@@ -288,9 +293,18 @@ const GameCanvas: React.FC = () => {
       },
       scene: MainScene,
       parent: 'game-container',
+      audio: {
+        disableWebAudio: false // Garante que o WebAudio está habilitado
+      }
     };
 
     gameRef.current = new Phaser.Game(config);
+
+    // Retorna uma função para destruir o jogo quando o componente for desmontado
+    return () => {
+      gameRef.current?.destroy(true);
+      gameRef.current = null;
+    };
   }, []);
 
   return (

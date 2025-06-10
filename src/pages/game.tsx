@@ -15,7 +15,7 @@ export default function Game() {
           left: '20px',
           zIndex: 1000,
           padding: '10px 15px',
-          background: 'rgba(255, 255, 255, 0.7)',
+          background: 'rgba(255, 136, 0, 0.7)',
           border: 'none',
           borderRadius: '5px',
           cursor: 'pointer',
@@ -25,7 +25,7 @@ export default function Game() {
         </button>
       </Link>
       
-      <h1 style={{ textAlign: 'center', marginTop: '50px', color: 'white' }}>my little 💖</h1>
+      <h1 style={{ textAlign: 'center', marginTop: '20px', color: 'red' }}>my little 💖</h1>
       <GameCanvas />
     </main>
   );
