@@ -68,7 +68,33 @@ export default function About() {
                     Um presente digital feito com carinho e tecnologia.
                 </p>
             </div>
+<div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '40%',
+                    backgroundImage: 'url(/assets/images/esquerda.png)',
+                    backgroundSize: 'contain',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'left center',
+                    opacity: 0.2,
+                    zIndex: 1
+                }} />
 
+                <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '40%',
+                    backgroundImage: 'url(/assets/images/direita.png)',
+                    backgroundSize: 'contain',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right center',
+                    opacity: 0.2,
+                    zIndex: 1
+                }} />
             <Link href="/" passHref>
                 <button style={{
                     padding: '15px 30px',
