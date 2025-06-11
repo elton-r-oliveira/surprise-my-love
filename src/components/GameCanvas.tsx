@@ -121,6 +121,12 @@ const GameCanvas: React.FC = () => {
           fontFamily: 'Arial',
         }).setScrollFactor(0);
 
+        this.healthText = this.add.text(16, 50, 'Vidas: 3', {
+          fontSize: '24px',
+          color: '#fff',
+          fontFamily: 'Arial',
+        }).setScrollFactor(0);
+
         // Chão infinito
         this.ground = this.physics.add.staticGroup();
         const groundWidth = 1600; // Largura de cada segmento do chão
