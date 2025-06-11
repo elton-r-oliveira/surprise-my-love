@@ -41,6 +41,20 @@ const GameCanvas: React.FC = () => {
       lastDamageTime: number = 0;
       lifeHearts!: Phaser.GameObjects.Group;
       clouds!: Phaser.GameObjects.Group;
+      currentDialogueIndex: number = 0;
+      npcDialogues: string[] = [
+        "Cuidado com os inimigos!",
+        "Use X ou Shift para atacar!",
+        "Colete todas as notas para a princesa!",
+        "Pule sobre as plataformas para encontrar atalhos!"
+      ];
+      dialogueText!: Phaser.GameObjects.Text;
+      dialogueContainer!: Phaser.GameObjects.Container;
+      isTyping: boolean = false;
+      currentDialogue: string = "";
+      dialogueTimer!: Phaser.Time.TimerEvent;
+      typingTimer!: Phaser.Time.TimerEvent;
+
       constructor() {
         super('MainScene');
       }
@@ -362,30 +376,21 @@ const GameCanvas: React.FC = () => {
         npc.setImmovable(true);
         (npc.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
-        // Diálogo NPC
-        const npcText = this.add.text(0, 0, 'Cuidado com os inimigos! Use X ou Shift para atacar!', {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: '#000',
-          align: 'center',
-          wordWrap: { width: 240 },
+        // Criação do balão de diálogo
+        this.createDialogueBubble(npc);
+
+        // Configura o timer para mudar os diálogos
+        this.dialogueTimer = this.time.addEvent({
+          delay: 4000, // Muda a cada 4 segundos
+          callback: this.nextDialogue,
+          callbackScope: this,
+          loop: true
         });
 
-        const bubble = this.add.graphics();
-        const padding = 10;
-        const textWidth = npcText.width + padding * 2;
-        const textHeight = npcText.height + padding * 2;
+        // Mostra o primeiro diálogo
+        this.showDialogue(this.npcDialogues[0]);
 
-        bubble.fillStyle(0xffffff, 1);
-        bubble.fillRoundedRect(0, 0, textWidth, textHeight, 12);
-
-        const balloon = this.add.container(npc.x, npc.y - 120, [bubble, npcText]);
-        balloon.setDepth(1);
-        npcText.setPosition(padding, padding);
-
-        this.events.on('update', () => {
-          balloon.setPosition(npc.x, npc.y - 90);
-        });
+        this.showDialogue(this.npcDialogues[this.currentDialogueIndex]);
 
         // Física
         this.physics.add.collider(this.player, platforms);
@@ -404,6 +409,96 @@ const GameCanvas: React.FC = () => {
             this.lifeHearts.add(heart);
           }
         });
+      }
+      createDialogueBubble(npc: Phaser.Physics.Arcade.Sprite) {
+        // Cria o texto do diálogo (inicialmente vazio)
+        this.dialogueText = this.add.text(0, 0, "", {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#000',
+          align: 'center',
+          wordWrap: { width: 240 }
+        });
+
+        // Cria o balão de fala
+        const bubble = this.add.graphics();
+        const padding = 10;
+        const textWidth = 260; // Largura fixa para o balão
+        const textHeight = this.dialogueText.height + padding * 2;
+
+        bubble.fillStyle(0xffffff, 1);
+        bubble.fillRoundedRect(0, 0, textWidth, textHeight, 12);
+
+        // Cria o container que agrupa balão e texto
+        this.dialogueContainer = this.add.container(npc.x, npc.y - 120, [bubble, this.dialogueText]);
+        this.dialogueContainer.setDepth(1);
+        this.dialogueText.setPosition(padding, padding);
+
+        // Atualiza a posição do balão conforme o NPC se move
+        this.events.on('update', () => {
+          this.dialogueContainer.setPosition(npc.x, npc.y - 90);
+
+          // Redimensiona o balão conforme o texto aumenta
+          const newHeight = this.dialogueText.height + padding * 2;
+          bubble.clear();
+          bubble.fillStyle(0xffffff, 1);
+          bubble.fillRoundedRect(0, 0, textWidth, newHeight, 12);
+        });
+      }
+
+      showDialogue(text: string) {
+        // Limpa qualquer animação de digitação em andamento
+        if (this.typingTimer) {
+          this.typingTimer.destroy();
+        }
+
+        this.currentDialogue = text;
+        this.dialogueText.setText("");
+        this.isTyping = true;
+
+        let i = 0;
+        this.typingTimer = this.time.addEvent({
+          delay: 50, // Velocidade da digitação (50ms por letra)
+          callback: () => {
+            // Adiciona apenas uma letra por vez
+            this.dialogueText.setText(this.currentDialogue.substring(0, i + 1));
+            i++;
+
+            if (i >= this.currentDialogue.length) {
+              this.isTyping = false;
+              // Não destruímos o timer imediatamente para evitar problemas
+            }
+          },
+          callbackScope: this,
+          repeat: text.length - 1
+        });
+      }
+
+      nextDialogue() {
+        // Só avança se não estiver digitando
+        if (this.isTyping) {
+          // Se estiver digitando, completa o texto imediatamente
+          this.typingTimer.destroy();
+          this.dialogueText.setText(this.currentDialogue);
+          this.isTyping = false;
+
+          // Espera um pouco antes de mostrar o próximo diálogo
+          this.time.delayedCall(500, () => {
+            this.advanceToNextDialogue();
+          });
+          return;
+        }
+
+        this.advanceToNextDialogue();
+      }
+
+      advanceToNextDialogue() {
+        this.currentDialogueIndex++;
+        if (this.currentDialogueIndex >= this.npcDialogues.length) {
+          this.currentDialogueIndex = 0;
+        }
+
+        this.showDialogue(this.npcDialogues[this.currentDialogueIndex]);
       }
 
       spawnEnemies() {
