@@ -111,9 +111,6 @@ const GameCanvas: React.FC = () => {
       currentDialogue: string = "";
       dialogueTimer!: Phaser.Time.TimerEvent;
       typingTimer!: Phaser.Time.TimerEvent;
-      princessDialogue!: Phaser.GameObjects.Container;
-      princessText!: Phaser.GameObjects.Text;
-      isShowingPrincessDialogue: boolean = false;
 
       constructor() {
         super('MainScene');
@@ -392,11 +389,9 @@ const GameCanvas: React.FC = () => {
           this.updateHUD();
         });
 
-        // Chegou na princesa - substitua o overlap existente por:
+        // Chegou na princesa
         this.physics.add.overlap(this.player, this.princess, () => {
-          if (!this.isShowingPrincessDialogue) {
-            this.showPrincessDialogue();
-          }
+          alert('Você chegou até mim... Eu te amo! 💖');
         });
 
         // Colisão com inimigos
@@ -488,104 +483,6 @@ const GameCanvas: React.FC = () => {
               .setDepth(100);
             this.lifeHearts.add(heart);
           }
-        });
-      }
-      
-      showPrincessDialogue() {
-        this.isShowingPrincessDialogue = true;
-        
-        // Pausa o jogo
-        this.physics.pause();
-        this.scene.pause();
-        this.sound.pauseAll();
-        
-        // Cria o balão de diálogo da princesa
-        const message = "Você chegou até mim... Eu te amo! 💖";
-        const padding = 20;
-        const width = 400;
-        
-        // Texto inicial vazio
-        this.princessText = this.add.text(padding, padding, "", {
-          fontSize: '24px',
-          color: '#000',
-          wordWrap: { width: width - padding * 2 },
-          fontFamily: 'Arial',
-        });
-        
-        // Fundo do balão
-        const bubble = this.add.graphics();
-        bubble.fillStyle(0xffffff, 1);
-        bubble.fillRoundedRect(0, 0, width, 150, 16);
-        bubble.setAlpha(0);
-        
-        // Container que agrupa tudo
-        this.princessDialogue = this.add.container(
-          this.cameras.main.centerX,
-          this.cameras.main.centerY - 100,
-          [bubble, this.princessText]
-        );
-        this.princessDialogue.setDepth(1000);
-        
-        // Animação de fade in
-        this.tweens.add({
-          targets: bubble,
-          alpha: 1,
-          duration: 500,
-          ease: 'Linear'
-        });
-        
-        // Animação de digitação
-        let i = 0;
-        const typingInterval = this.time.addEvent({
-          delay: 50,
-          callback: () => {
-            this.princessText.setText(message.substring(0, i + 1));
-            i++;
-            
-            if (i >= message.length) {
-              // Adiciona botão de fechar quando terminar
-              this.addCloseButton();
-              typingInterval.destroy();
-            }
-          },
-          callbackScope: this,
-          repeat: message.length - 1
-        });
-      }
-      
-      addCloseButton() {
-        const button = this.add.text(
-          this.princessDialogue.x + 150,
-          this.princessDialogue.y + 120,
-          "Fechar",
-          {
-            fontSize: '20px',
-            color: '#fff',
-            backgroundColor: '#8b5a2b',
-            padding: { x: 20, y: 10 }
-          }
-        );
-        button.setInteractive();
-        button.setDepth(1001);
-        
-        button.on('pointerdown', () => {
-          // Fecha o diálogo
-          this.tweens.add({
-            targets: [this.princessDialogue, button],
-            alpha: 0,
-            duration: 300,
-            ease: 'Linear',
-            onComplete: () => {
-              this.princessDialogue.destroy();
-              button.destroy();
-              
-              // Retoma o jogo
-              this.physics.resume();
-              this.scene.resume();
-              this.sound.resumeAll();
-              this.isShowingPrincessDialogue = false;
-            }
-          });
         });
       }
 
