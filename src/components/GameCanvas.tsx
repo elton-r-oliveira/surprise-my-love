@@ -28,6 +28,17 @@ const GameCanvas: React.FC = () => {
       hudText!: Phaser.GameObjects.Text;
       score: number = 0;
       background!: Phaser.GameObjects.TileSprite;
+      enemies!: Phaser.Physics.Arcade.Group;
+      attackHitbox!: Phaser.Physics.Arcade.Sprite;
+      isAttacking: boolean = false;
+      lastAttackTime: number = 0;
+      attackCooldown: number = 500; // 0.5 segundos
+      health: number = 3;
+      healthText!: Phaser.GameObjects.Text;
+      gameOver: boolean = false;
+      isInvincible: boolean = false;
+      invincibilityDuration: number = 1000; // 1 segundo de invencibilidade
+      lastDamageTime: number = 0;
 
       constructor() {
         super('MainScene');
@@ -37,10 +48,9 @@ const GameCanvas: React.FC = () => {
         this.load.image('bg', '/assets/backgrounds/chao.png');
         this.load.image('platform', '/assets/backgrounds/platform.png');
         this.load.spritesheet('milin', '/assets/sprites/milin.png', {
-          frameWidth: 100,  // ajuste conforme o seu sprite
+          frameWidth: 100,
           frameHeight: 95,
         });
-
         this.load.image('heart', '/assets/sprites/heart.png');
         this.load.spritesheet('player', '/assets/sprites/player22.png', {
           frameWidth: 65,
@@ -50,7 +60,17 @@ const GameCanvas: React.FC = () => {
           frameWidth: 60,
           frameHeight: 95,
         });
+        this.load.spritesheet('enemy', '/assets/sprites/enemy.png', { // Adicione um sprite para inimigos
+          frameWidth: 64,
+          frameHeight: 64,
+        });
+        this.load.spritesheet('attack', '/assets/sprites/attack.png', { // Sprite para o ataque
+          frameWidth: 100,
+          frameHeight: 100,
+        });
         this.load.audio('bgm', '/assets/audio/bgm.mp3');
+        this.load.audio('attackSound', '/assets/audio/attack.mp3'); // Som de ataque
+        this.load.audio('hitSound', '/assets/audio/hit.mp3'); // Som de dano
       }
 
       showMessage(message: string) {
@@ -111,7 +131,7 @@ const GameCanvas: React.FC = () => {
           segment.setSize(groundWidth, 50).setVisible(false);
         }
 
-        // Animações
+        // Animações do jogador
         this.anims.create({
           key: 'walk',
           frames: this.anims.generateFrameNumbers('player', { start: 0, end: 5 }),
@@ -126,10 +146,31 @@ const GameCanvas: React.FC = () => {
         });
 
         this.anims.create({
+          key: 'attack',
+          frames: this.anims.generateFrameNumbers('player', { start: 0, end: 0 }), // Ajuste para frames de ataque
+          frameRate: 15,
+        });
+
+        // Animações da princesa
+        this.anims.create({
           key: 'princess_idle',
           frames: this.anims.generateFrameNumbers('princess', { start: 0, end: 3 }),
           frameRate: 6,
           repeat: -1,
+        });
+
+        // Animações do inimigo
+        this.anims.create({
+          key: 'enemy_walk',
+          frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 0 }),
+          frameRate: 6,
+          repeat: -1,
+        });
+
+        this.anims.create({
+          key: 'enemy_hit',
+          frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 0 }),
+          frameRate: 10,
         });
 
         // Grupo de corações
@@ -142,33 +183,57 @@ const GameCanvas: React.FC = () => {
           heart.setImmovable(true);
           (heart.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
-          // 🩷 Animação de flutuação
-          this.tweens.add({
-            targets: heart,
-            y: heart.y - 20,
-            duration: 1000,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1,
-          });
+          // Verificação antes de adicionar o tween
+          if (heart) {
+            this.tweens.add({
+              targets: heart,
+              y: heart.y - 20,
+              duration: 1000,
+              ease: 'Sine.easeInOut',
+              yoyo: true,
+              repeat: -1,
+            });
+          } else {
+            console.warn("Heart is undefined, cannot add tween.");
+          }
         });
 
         // Player
-        this.player = this.physics.add.sprite(100, 640, 'player');
+        this.player = this.physics.add.sprite(100, 500, 'player');
+        // groundHeight - 100 para ficar em cima do chão (ajuste o 100 conforme o tamanho do sprite)
         this.player.setScale(1.5);
-        this.player.setCollideWorldBounds(false); // Remove limites do mundo
+        this.player.setCollideWorldBounds(true, undefined, undefined, true);
+        (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
+        (this.player.body as Phaser.Physics.Arcade.Body).setSize(40, 80); // Ajuste para o tamanho real do player
+        (this.player.body as Phaser.Physics.Arcade.Body).setOffset(10, 10); // Ajuste conforme necessário
 
-        // Princesa (posicionada em um local específico)
-        this.princess = this.physics.add.sprite(6000, 640, 'princess');
+        // Hitbox de ataque (invisível inicialmente)
+        this.attackHitbox = this.physics.add.sprite(0, 0, 'attack');
+        this.attackHitbox.setVisible(false);
+        this.attackHitbox.setActive(false);
+
+        // Configurações importantes para o hitbox:
+        this.attackHitbox.setGravityY(0); // Desativa a gravidade
+        this.attackHitbox.setImmovable(true); // Não é afetado por colisões
+        (this.attackHitbox.body as Phaser.Physics.Arcade.Body).allowGravity = false; // Garante que não caia
+        (this.attackHitbox.body as Phaser.Physics.Arcade.Body).setSize(80, 60);
+
+        // Princesa
+        this.princess = this.physics.add.sprite(5000, 640, 'princess');
         this.princess.setScale(1.5);
         this.princess.anims.play('princess_idle', true);
         this.princess.setImmovable(true);
         (this.princess.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
+        // Inimigos
+        this.enemies = this.physics.add.group();
+        this.spawnEnemies();
+
         // Colisões
         this.physics.add.collider(this.player, this.ground);
         this.physics.add.collider(this.princess, this.ground);
         this.physics.add.collider(this.hearts, this.ground);
+        this.physics.add.collider(this.enemies, this.ground);
 
         // Coração coletado
         this.physics.add.overlap(this.player, this.hearts, (_player, heart) => {
@@ -178,7 +243,6 @@ const GameCanvas: React.FC = () => {
           h.destroy();
           this.score += 1;
           this.updateHUD();
-
         });
 
         // Chegou na princesa
@@ -186,18 +250,45 @@ const GameCanvas: React.FC = () => {
           alert('Você chegou até mim... Eu te amo! 💖');
         });
 
+        // Colisão com inimigos
+        this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+          if (!this.isAttacking) {
+            this.takeDamage();
+            this.knockback(player as Phaser.Physics.Arcade.Sprite, enemy as Phaser.Physics.Arcade.Sprite);
+          }
+        });
+
+        // Ataque contra inimigos
+        this.physics.add.overlap(this.attackHitbox, this.enemies, (hitbox, enemy) => {
+          const e = enemy as Phaser.Physics.Arcade.Sprite;
+          e.anims.play('enemy_hit', true);
+          e.setTint(0xff0000); // Efeito de dano
+
+          this.time.delayedCall(200, () => {
+            e.clearTint();
+          });
+
+          this.time.delayedCall(500, () => {
+            e.destroy();
+            this.sound.play('hitSound');
+          });
+        });
+
         this.cursors = this.input.keyboard!.createCursorKeys();
 
-        // Configuração da câmera
+        // Tecla de ataque (tecla X ou Shift)
+        this.input.keyboard?.on('keydown-X', this.attack, this);
+        this.input.keyboard?.on('keydown-SHIFT', this.attack, this);
+
+        // Câmera
         this.cameras.main.setBounds(0, 0, groundWidth * groundSegments, 800);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // Plataformas flutuantes
+        // Plataformas
         const platforms = this.physics.add.staticGroup();
-
-        // Plataforma com imagem
         platforms.create(1200, 200, 'platform');
 
+        // NPC
         this.anims.create({
           key: 'milin_idle',
           frames: this.anims.generateFrameNumbers('milin', { start: 0, end: 3 }),
@@ -211,8 +302,8 @@ const GameCanvas: React.FC = () => {
         npc.setImmovable(true);
         (npc.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
-        // Texto da fala
-        const npcText = this.add.text(0, 0, 'Olá, aventureira! Seja bem vinda, a essa jornada AWESOME em busca de sua amada, está preparada?', {
+        // Diálogo NPC
+        const npcText = this.add.text(0, 0, 'Cuidado com os inimigos! Use X ou Shift para atacar!', {
           fontSize: '18px',
           fontFamily: 'Arial',
           color: '#000',
@@ -220,7 +311,6 @@ const GameCanvas: React.FC = () => {
           wordWrap: { width: 240 },
         });
 
-        // Caixa de fundo do balão
         const bubble = this.add.graphics();
         const padding = 10;
         const textWidth = npcText.width + padding * 2;
@@ -229,27 +319,171 @@ const GameCanvas: React.FC = () => {
         bubble.fillStyle(0xffffff, 1);
         bubble.fillRoundedRect(0, 0, textWidth, textHeight, 12);
 
-        // Agrupar balão + texto
         const balloon = this.add.container(npc.x, npc.y - 120, [bubble, npcText]);
         balloon.setDepth(1);
-
-        // Centralizar texto no fundo
         npcText.setPosition(padding, padding);
 
-        // Fixa o balão acompanhando o NPC
         this.events.on('update', () => {
           balloon.setPosition(npc.x, npc.y - 120);
         });
 
-        // Adiciona colisões com jogador e corações
+        // Física
         this.physics.add.collider(this.player, platforms);
         this.physics.add.collider(this.hearts, platforms);
-
-        // Define limites reais do mundo para evitar travar
-        this.physics.world.setBounds(0, 0, groundWidth * groundSegments, 800);
-        this.player.setCollideWorldBounds(true);
-
+        this.physics.add.collider(this.enemies, platforms);
+        this.physics.world.setBounds(0, 0, groundWidth * groundSegments, 800, true, true, true, true);
+        this.player.setCollideWorldBounds(true, undefined, undefined, true);
       }
+
+      spawnEnemies() {
+        // Posições onde os inimigos vão aparecer
+        const enemyPositions = [
+          { x: 800, y: 500 },
+          { x: 1500, y: 500 },
+          { x: 2200, y: 500 },
+          { x: 3000, y: 500 },
+          { x: 4500, y: 500 }
+        ];
+
+        enemyPositions.forEach(pos => {
+          const enemy = this.enemies.create(pos.x, pos.y, 'enemy') as Phaser.Physics.Arcade.Sprite;
+          enemy.setScale(1.5);
+          enemy.setCollideWorldBounds(true);
+          enemy.setBounce(0.2);
+          if (enemy.body) {
+            enemy.setVelocityX(Phaser.Math.Between(-50, 50));
+          }
+
+          // Adicione esta verificação de segurança
+          if (enemy && enemy.anims) {
+            enemy.anims.play('enemy_walk', true);
+          } else {
+            console.warn("Enemy or enemy.anims is undefined, cannot play animation.");
+          }
+
+          // Inteligência simples: muda de direção periodicamente
+          this.time.addEvent({
+            delay: Phaser.Math.Between(2000, 4000),
+            callback: () => {
+              if (!enemy.active || !enemy.body) return;
+
+              enemy.setVelocityX(enemy.body!.velocity.x * -1); // Use ! apenas se tiver certeza
+              if (enemy.body.velocity.x > 0) {
+                enemy.setFlipX(false);
+              } else {
+                enemy.setFlipX(true);
+              }
+            },
+            loop: true
+          });
+        });
+      }
+
+      attack() {
+        const now = this.time.now;
+
+        // Verifica cooldown
+        if (now - this.lastAttackTime < this.attackCooldown || this.isAttacking) {
+          return;
+        }
+
+        this.isAttacking = true;
+        this.lastAttackTime = now;
+        this.sound.play('attackSound');
+
+        // Posiciona a hitbox de ataque na frente do jogador
+        const direction = this.player.flipX ? -1 : 1;
+        this.attackHitbox.enableBody(true, this.player.x + (direction * 60), this.player.y, true, true);
+        this.attackHitbox.setVisible(true);
+        this.attackHitbox.setActive(true);
+
+        // Animação de ataque
+        this.player.anims.play('attack', true);
+
+        // Desativa a hitbox após um tempo
+        this.time.delayedCall(300, () => {
+          this.attackHitbox.disableBody(true, true); // Desativa completamente o corpo físico
+          this.isAttacking = false;
+        });
+      }
+
+      takeDamage() {
+        const now = this.time.now;
+
+        // Verifica se está invencível ou se o tempo de invencibilidade ainda não acabou
+        if (this.gameOver || this.isInvincible || now - this.lastDamageTime < this.invincibilityDuration) {
+          return;
+        }
+
+        this.health -= 1;
+        this.lastDamageTime = now;
+        this.healthText.setText(`Vidas: ${this.health}`);
+        this.sound.play('hitSound');
+
+        // Ativa invencibilidade
+        this.isInvincible = true;
+
+        // Efeito visual de dano (piscar)
+        const blinkInterval = 100; // tempo entre piscadas em ms
+        const blinkCount = 5; // número de piscadas
+        let blinkTimer = 0;
+
+        const timer = this.time.addEvent({
+          delay: blinkInterval,
+          callback: () => {
+            if (blinkTimer % 2 === 0) {
+              this.player.setTint(0xff0000);
+            } else {
+              this.player.clearTint();
+            }
+            blinkTimer++;
+
+            if (blinkTimer >= blinkCount * 2) {
+              this.player.clearTint();
+              this.isInvincible = false;
+              timer.destroy();
+            }
+          },
+          callbackScope: this,
+          loop: true
+        });
+
+        if (this.health <= 0) {
+          this.gameOver = true;
+          this.player.setTint(0xff0000);
+          this.player.setVelocity(0, 0);
+          this.player.anims.stop();
+
+          // Para a música antes de reiniciar
+          if (this.music) {
+            this.music.stop();
+          }
+
+          this.time.delayedCall(1000, () => {
+            // Destruir todos os objetos antes de reiniciar
+            this.children.each(child => {
+              if (child instanceof Phaser.GameObjects.GameObject) {
+                child.destroy();
+              }
+            });
+
+            // Reiniciar a cena
+            this.scene.restart();
+          });
+        } else {
+          // Apenas knockback se não for game over
+          this.knockback(this.player, this.enemies.getChildren()[0] as Phaser.Physics.Arcade.Sprite);
+        }
+      }
+
+      knockback(player: Phaser.Physics.Arcade.Sprite, enemy: Phaser.Physics.Arcade.Sprite) {
+        if (!player.body || !enemy.body) return;
+
+        const direction = player.x < enemy.x ? -1 : 1;
+        player.setVelocityX(direction * -300);
+        player.setVelocityY(-200);
+      }
+
 
       update() {
         // Atualiza o background para efeito parallax
