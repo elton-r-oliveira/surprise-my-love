@@ -7,12 +7,20 @@ const GameCanvas = dynamic(() => import('../components/GameCanvas'), {
 
 export default function Game() {
   return (
-    <main style={{ position: 'relative' }}>
+    <main style={{
+      margin: 0,
+      padding: 0,
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: '#111' // Mesma cor do fundo do jogo
+    }}>
       <Link href="/" passHref>
         <button style={{
           position: 'absolute',
           top: '20px',
-          left: '20px',
+          right: '40px', // Mude de 'left' para 'right'
           zIndex: 1000,
           padding: '10px 15px',
           background: 'rgba(255, 136, 0, 0.7)',
@@ -24,8 +32,8 @@ export default function Game() {
           Voltar ao Menu
         </button>
       </Link>
-      
-      <h1 style={{ textAlign: 'center', marginTop: '20px', color: 'red' }}>my little 💖</h1>
+
+      {/* <h1 style={{ textAlign: 'center', marginTop: '20px', color: 'red' }}>my little 💖</h1> */}
       <GameCanvas />
     </main>
   );

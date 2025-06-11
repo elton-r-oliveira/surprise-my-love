@@ -40,13 +40,15 @@ const GameCanvas: React.FC = () => {
       invincibilityDuration: number = 1000; // 1 segundo de invencibilidade
       lastDamageTime: number = 0;
       lifeHearts!: Phaser.GameObjects.Group;
-
+      clouds!: Phaser.GameObjects.Group;
       constructor() {
         super('MainScene');
       }
 
       preload() {
-        this.load.image('bg', '/assets/backgrounds/chao.png');
+        this.load.image('sky', '/assets/backgrounds/sky.png');
+        this.load.image('cloud', '/assets/backgrounds/cloud.png');
+        this.load.image('bg', '/assets/backgrounds/background.png');
         this.load.image('platform', '/assets/backgrounds/platform.png');
         this.load.spritesheet('milin', '/assets/sprites/milin.png', {
           frameWidth: 100,
@@ -105,6 +107,31 @@ const GameCanvas: React.FC = () => {
       }
 
       create() {
+
+        const sky = this.add.image(0, 0, 'sky')
+          .setOrigin(0, 0)
+          .setDisplaySize(this.cameras.main.width, this.cameras.main.height)
+          .setScrollFactor(0)
+          .setDepth(-1); // Garante que fique atrás de tudo
+        // Grupo de nuvens
+        this.clouds = this.add.group();
+
+        // Criar várias nuvens em posições aleatórias
+        for (let i = 0; i < 10; i++) {
+          const x = Phaser.Math.Between(-100, this.scale.width + 100);
+          const y = Phaser.Math.Between(50, 300);
+          const scale = Phaser.Math.FloatBetween(0.2, 0.5);
+          const speed = Phaser.Math.FloatBetween(0.2, 2.5);
+
+          const cloud = this.add.image(x, y, 'cloud')
+            .setScale(scale)
+            .setAlpha(0.8) // Leve transparência
+            .setScrollFactor(0); // Ou um valor baixo como 0.1 para parallax
+
+          // Adiciona dados de velocidade para cada nuvem
+          cloud.setData('speed', speed);
+          this.clouds.add(cloud);
+        }
         // Fundo infinito
         this.background = this.add.tileSprite(0, 0, 1600, 800, 'bg')
           .setOrigin(0, 0)
@@ -543,6 +570,18 @@ const GameCanvas: React.FC = () => {
 
 
       update() {
+
+        // Atualizar nuvens - versão corretamente tipada
+        this.clouds.getChildren().forEach((gameObject: Phaser.GameObjects.GameObject) => {
+          const cloud = gameObject as Phaser.GameObjects.Image;
+          cloud.x += cloud.getData('speed');
+
+          // Reciclar nuvens que saírem da tela
+          if (cloud.x > this.scale.width + 100) {
+            cloud.x = -100;
+            cloud.y = Phaser.Math.Between(50, 200);
+          }
+        });
         // Atualiza o background para efeito parallax
         this.background.tilePositionX = this.cameras.main.scrollX * 0.5;
 
@@ -573,8 +612,8 @@ const GameCanvas: React.FC = () => {
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width: 1600,
-      height: 800,
+      width: window.innerWidth, // Usa a largura da janela
+      height: window.innerHeight, // Usa a altura da janela
       physics: {
         default: 'arcade',
         arcade: {
@@ -585,7 +624,11 @@ const GameCanvas: React.FC = () => {
       scene: MainScene,
       parent: 'game-container',
       audio: {
-        disableWebAudio: false // Garante que o WebAudio está habilitado
+        disableWebAudio: false
+      },
+      scale: {
+        mode: Phaser.Scale.RESIZE, // Escala o jogo para preencher a tela
+        autoCenter: Phaser.Scale.CENTER_BOTH // Centraliza o jogo
       }
     };
 
@@ -599,17 +642,19 @@ const GameCanvas: React.FC = () => {
   }, []);
 
   return (
-    <div
-      id="game-container"
-      style={{
-        width: '100%',
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#111',
-      }}
-    />
+    <>
+      <div
+        id="game-container"
+        style={{
+          width: '100%',
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#111',
+        }}
+      />
+    </>
   );
 };
 
