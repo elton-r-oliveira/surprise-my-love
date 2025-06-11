@@ -88,13 +88,16 @@ export default function About() {
                 transition: 'all 2.5s ease-in-out'
             }}>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6', marginBottom: '20px' }}>
-                    "My Little 💖" é um jogo especial criado para celebrar o Dia dos Namorados.
+                    "My Little 💖" é um game especial para alguém especial.
+                </p>
+                <p style={{ fontSize: '1.2rem', lineHeight: '0.6', marginBottom: '20px' }}>
+                    Nesta aventura, você controla uma personagem em busca de sua amada,
                 </p>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6', marginBottom: '20px' }}>
-                    Nesta aventura, você controla uma personagem em busca de sua amada, coletando corações que revelam mensagens especiais.
+                   coletando corações que revelam mensagens especiais.
                 </p>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6' }}>
-                    Um presente digital feito com carinho e tecnologia.
+                    De coisinho para coisinha.
                 </p>
             </div>
 

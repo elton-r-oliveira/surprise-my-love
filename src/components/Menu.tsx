@@ -151,7 +151,7 @@ export default function Menu() {
                         opacity: isTransitioning ? 0.7 : 1,
                         transition: 'opacity 0.5s ease-in-out'
                     }}>
-                        Uma aventura especial para o Dia dos Namorados
+                        Uma aventura incrível para alguém incrível.
                     </p>
 
                     <div style={{
@@ -216,7 +216,8 @@ export default function Menu() {
                         opacity: isTransitioning ? 0.5 : 1,
                         transition: 'opacity 0.5s ease-in-out'
                     }}>
-                        <p>Feito com 💖 para você</p>
+                        <p>Feito com 💖 para você.</p>
+                        <p>PS: Antes de iniciar, leia Sobre o Jogo</p>
                     </div>
                 </div>
             </div>

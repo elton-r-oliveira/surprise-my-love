@@ -587,21 +587,20 @@ const GameCanvas: React.FC = () => {
           { x: 4500, y: 500 }
         ];
 
-        enemyPositions.forEach(pos => {
-          const enemy = this.enemies.create(pos.x, pos.y, 'enemy') as Phaser.Physics.Arcade.Sprite;
-          enemy.setScale(1.0);
-          enemy.setCollideWorldBounds(true);
-          enemy.setBounce(0.2);
-          if (enemy.body) {
-            enemy.setVelocityX(Phaser.Math.Between(-20, 20));
-          }
+  enemyPositions.forEach(pos => {
+    const enemy = this.enemies.create(pos.x, pos.y, 'enemy') as Phaser.Physics.Arcade.Sprite;
+    enemy.setScale(1.0);
+    enemy.setCollideWorldBounds(true);
+    enemy.setBounce(0.2);
+    enemy.setData('health', 2); // Adiciona vida ao inimigo (precisa de 2 ataques)
+    
+    if (enemy.body) {
+      enemy.setVelocityX(Phaser.Math.Between(-20, 20));
+    }
 
-          // Adicione esta verificação de segurança
-          if (enemy && enemy.anims) {
-            enemy.anims.play('enemy_walk', true);
-          } else {
-            console.warn("Enemy or enemy.anims is undefined, cannot play animation.");
-          }
+    if (enemy && enemy.anims) {
+      enemy.anims.play('enemy_walk', true);
+    }
 
           // Inteligência simples: muda de direção periodicamente
           this.time.addEvent({
