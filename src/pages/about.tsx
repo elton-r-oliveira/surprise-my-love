@@ -94,7 +94,7 @@ export default function About() {
                     Nesta aventura, você controla uma personagem em busca de sua amada,
                 </p>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6', marginBottom: '20px' }}>
-                   coletando corações que revelam mensagens especiais.
+                   coletando corações que revelam mensagens especiais..
                 </p>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6' }}>
                     De coisinho para coisinha.
