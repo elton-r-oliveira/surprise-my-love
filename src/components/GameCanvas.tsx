@@ -39,6 +39,7 @@ const GameCanvas: React.FC = () => {
       isInvincible: boolean = false;
       invincibilityDuration: number = 1000; // 1 segundo de invencibilidade
       lastDamageTime: number = 0;
+      lifeHearts!: Phaser.GameObjects.Group;
 
       constructor() {
         super('MainScene');
@@ -52,6 +53,7 @@ const GameCanvas: React.FC = () => {
           frameHeight: 95,
         });
         this.load.image('heart', '/assets/sprites/heart.png');
+        this.load.image('papel', '/assets/sprites/papel.png');
         this.load.spritesheet('player', '/assets/sprites/player22.png', {
           frameWidth: 65,
           frameHeight: 101,
@@ -60,14 +62,19 @@ const GameCanvas: React.FC = () => {
           frameWidth: 60,
           frameHeight: 95,
         });
-        this.load.spritesheet('enemy', '/assets/sprites/enemy.png', { // Adicione um sprite para inimigos
-          frameWidth: 64,
-          frameHeight: 64,
-        });
-        this.load.spritesheet('attack', '/assets/sprites/attack.png', { // Sprite para o ataque
-          frameWidth: 100,
+        this.load.spritesheet('enemy', '/assets/sprites/aranha.png', { // Adicione um sprite para inimigos
+          frameWidth: 233,
           frameHeight: 100,
         });
+        this.load.spritesheet('enemyHit', '/assets/sprites/aranhaHit.png', { // Adicione um sprite para inimigos
+          frameWidth: 206,
+          frameHeight: 149,
+        });
+        this.load.spritesheet('attack', '/assets/sprites/attack.png', { // Sprite para o ataque
+          frameWidth: 160,
+          frameHeight: 154,
+        });
+
         this.load.audio('bgm', '/assets/audio/bgm.mp3');
         this.load.audio('attackSound', '/assets/audio/attack.mp3'); // Som de ataque
         this.load.audio('hitSound', '/assets/audio/hit.mp3'); // Som de dano
@@ -115,17 +122,33 @@ const GameCanvas: React.FC = () => {
         }
 
         // HUD
-        this.hudText = this.add.text(16, 16, 'Corações: 0', {
+        this.hudText = this.add.text(16, 16, 'Notas Coletadas: 0', {
           fontSize: '24px',
           color: '#fff',
           fontFamily: 'Arial',
         }).setScrollFactor(0);
 
-        this.healthText = this.add.text(16, 50, 'Vidas: 3', {
-          fontSize: '24px',
-          color: '#fff',
-          fontFamily: 'Arial',
-        }).setScrollFactor(0);
+        // this.healthText = this.add.text(16, 50, 'Vidas: 3', {
+        //   fontSize: '24px',
+        //   color: '#fff',
+        //   fontFamily: 'Arial',
+        // }).setScrollFactor(0);
+
+        this.lifeHearts = this.add.group();
+
+        const heartScale = 0.08; // Tamanho menor que o anterior (0.15)
+        const heartSpacing = 55; // Espaço entre os corações
+        const startX = 50; // Posição X inicial
+        const posY = 50; // Posição Y
+
+        // Cria 3 corações (um para cada vida)
+        for (let i = 0; i < 3; i++) {
+          const heart = this.add.image(startX + i * heartSpacing, posY, 'heart')
+            .setScrollFactor(0)
+            .setScale(heartScale)
+            .setOrigin(0, 0); // Alinha pela esquerda
+          this.lifeHearts.add(heart);
+        }
 
         // Chão infinito
         this.ground = this.physics.add.staticGroup();
@@ -133,7 +156,7 @@ const GameCanvas: React.FC = () => {
         const groundSegments = 4; // Quantidade de segmentos
 
         for (let i = 0; i < groundSegments; i++) {
-          const segment = this.ground.create(i * groundWidth, 750, '');
+          const segment = this.ground.create(i * groundWidth, 720, '');
           segment.setSize(groundWidth, 50).setVisible(false);
         }
 
@@ -152,9 +175,10 @@ const GameCanvas: React.FC = () => {
         });
 
         this.anims.create({
-          key: 'attack',
-          frames: this.anims.generateFrameNumbers('player', { start: 0, end: 0 }), // Ajuste para frames de ataque
-          frameRate: 15,
+          key: 'attack_anim', // Mudei o nome para evitar conflito
+          frames: this.anims.generateFrameNumbers('attack', { start: 0, end: 6 }), // De 0 a 6 são 7 frames
+          frameRate: 10, // Aumentei o frameRate para a animação ser mais visível
+          repeat: 0, // Só executa uma vez
         });
 
         // Animações da princesa
@@ -168,14 +192,14 @@ const GameCanvas: React.FC = () => {
         // Animações do inimigo
         this.anims.create({
           key: 'enemy_walk',
-          frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 0 }),
+          frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 8 }),
           frameRate: 6,
           repeat: -1,
         });
 
         this.anims.create({
           key: 'enemy_hit',
-          frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 0 }),
+          frames: this.anims.generateFrameNumbers('enemyHit', { start: 0, end: 4 }),
           frameRate: 10,
         });
 
@@ -183,7 +207,7 @@ const GameCanvas: React.FC = () => {
         this.hearts = this.physics.add.group({ classType: Phaser.Physics.Arcade.Sprite });
 
         messages.forEach((msg, i) => {
-          const heart = this.hearts.create(400 + i * 400, 500, 'heart') as Phaser.Physics.Arcade.Sprite;
+          const heart = this.hearts.create(400 + i * 400, 500, 'papel') as Phaser.Physics.Arcade.Sprite;
           heart.setData('message', msg);
           heart.setScale(0.1);
           heart.setImmovable(true);
@@ -205,7 +229,7 @@ const GameCanvas: React.FC = () => {
         });
 
         // Player
-        this.player = this.physics.add.sprite(100, 500, 'player');
+        this.player = this.physics.add.sprite(100, 550, 'player');
         // groundHeight - 100 para ficar em cima do chão (ajuste o 100 conforme o tamanho do sprite)
         this.player.setScale(1.5);
         this.player.setCollideWorldBounds(true, undefined, undefined, true);
@@ -214,9 +238,12 @@ const GameCanvas: React.FC = () => {
         (this.player.body as Phaser.Physics.Arcade.Body).setOffset(10, 10); // Ajuste conforme necessário
 
         // Hitbox de ataque (invisível inicialmente)
+        // No método create():
         this.attackHitbox = this.physics.add.sprite(0, 0, 'attack');
         this.attackHitbox.setVisible(false);
         this.attackHitbox.setActive(false);
+        this.attackHitbox.setScale(1.5); // Ajuste a escala conforme necessário
+        this.attackHitbox.setDepth(10); // Garante que fique acima de outros sprites
 
         // Configurações importantes para o hitbox:
         this.attackHitbox.setGravityY(0); // Desativa a gravidade
@@ -330,7 +357,7 @@ const GameCanvas: React.FC = () => {
         npcText.setPosition(padding, padding);
 
         this.events.on('update', () => {
-          balloon.setPosition(npc.x, npc.y - 120);
+          balloon.setPosition(npc.x, npc.y - 90);
         });
 
         // Física
@@ -339,6 +366,17 @@ const GameCanvas: React.FC = () => {
         this.physics.add.collider(this.enemies, platforms);
         this.physics.world.setBounds(0, 0, groundWidth * groundSegments, 800, true, true, true, true);
         this.player.setCollideWorldBounds(true, undefined, undefined, true);
+
+        // No método create(), adicione no final:
+        this.events.on('restart', () => {
+          this.lifeHearts.clear(true, true);
+          for (let i = 0; i < 3; i++) {
+            const heart = this.add.image(16 + i * 30, 50, 'heart')
+              .setScrollFactor(0)
+              .setScale(0.15);
+            this.lifeHearts.add(heart);
+          }
+        });
       }
 
       spawnEnemies() {
@@ -353,11 +391,11 @@ const GameCanvas: React.FC = () => {
 
         enemyPositions.forEach(pos => {
           const enemy = this.enemies.create(pos.x, pos.y, 'enemy') as Phaser.Physics.Arcade.Sprite;
-          enemy.setScale(1.5);
+          enemy.setScale(1.0);
           enemy.setCollideWorldBounds(true);
           enemy.setBounce(0.2);
           if (enemy.body) {
-            enemy.setVelocityX(Phaser.Math.Between(-50, 50));
+            enemy.setVelocityX(Phaser.Math.Between(-20, 20));
           }
 
           // Adicione esta verificação de segurança
@@ -388,7 +426,6 @@ const GameCanvas: React.FC = () => {
       attack() {
         const now = this.time.now;
 
-        // Verifica cooldown
         if (now - this.lastAttackTime < this.attackCooldown || this.isAttacking) {
           return;
         }
@@ -397,41 +434,60 @@ const GameCanvas: React.FC = () => {
         this.lastAttackTime = now;
         this.sound.play('attackSound');
 
-        // Posiciona a hitbox de ataque na frente do jogador
+        // Calcula a posição baseada na direção do jogador
         const direction = this.player.flipX ? -1 : 1;
-        this.attackHitbox.enableBody(true, this.player.x + (direction * 60), this.player.y, true, true);
+        const offsetX = direction * 120; // Aumente este valor para colocar mais à frente
+        const offsetY = 10; // Ajuste para posicionar verticalmente
+
+        this.attackHitbox.enableBody(true, this.player.x + offsetX, this.player.y + offsetY, true, true);
+
+        // Ajusta o flip do ataque para corresponder à direção do jogador
+        this.attackHitbox.setFlipX(this.player.flipX);
+
         this.attackHitbox.setVisible(true);
         this.attackHitbox.setActive(true);
+        this.attackHitbox.play('attack_anim');
 
-        // Animação de ataque
+        // Animação do jogador (opcional)
         this.player.anims.play('attack', true);
 
-        // Desativa a hitbox após um tempo
-        this.time.delayedCall(300, () => {
-          this.attackHitbox.disableBody(true, true); // Desativa completamente o corpo físico
+        this.attackHitbox.on('animationcomplete', () => {
+          this.attackHitbox.disableBody(true, true);
           this.isAttacking = false;
+          this.attackHitbox.off('animationcomplete');
+        });
+
+        this.time.delayedCall(500, () => {
+          if (this.isAttacking) {
+            this.attackHitbox.disableBody(true, true);
+            this.isAttacking = false;
+          }
         });
       }
 
       takeDamage() {
         const now = this.time.now;
 
-        // Verifica se está invencível ou se o tempo de invencibilidade ainda não acabou
         if (this.gameOver || this.isInvincible || now - this.lastDamageTime < this.invincibilityDuration) {
           return;
         }
 
         this.health -= 1;
         this.lastDamageTime = now;
-        this.healthText.setText(`Vidas: ${this.health}`);
         this.sound.play('hitSound');
 
-        // Ativa invencibilidade
+        // Remove o último coração visível
+        const hearts = this.lifeHearts.getChildren();
+        if (hearts.length > 0) {
+          const lastHeart = hearts[hearts.length - 1] as Phaser.GameObjects.Image;
+          lastHeart.destroy();
+        }
+
+        // Restante do método permanece igual...
         this.isInvincible = true;
 
-        // Efeito visual de dano (piscar)
-        const blinkInterval = 100; // tempo entre piscadas em ms
-        const blinkCount = 5; // número de piscadas
+        const blinkInterval = 100;
+        const blinkCount = 5;
         let blinkTimer = 0;
 
         const timer = this.time.addEvent({
@@ -460,24 +516,19 @@ const GameCanvas: React.FC = () => {
           this.player.setVelocity(0, 0);
           this.player.anims.stop();
 
-          // Para a música antes de reiniciar
           if (this.music) {
             this.music.stop();
           }
 
           this.time.delayedCall(1000, () => {
-            // Destruir todos os objetos antes de reiniciar
             this.children.each(child => {
               if (child instanceof Phaser.GameObjects.GameObject) {
                 child.destroy();
               }
             });
-
-            // Reiniciar a cena
             this.scene.restart();
           });
         } else {
-          // Apenas knockback se não for game over
           this.knockback(this.player, this.enemies.getChildren()[0] as Phaser.Physics.Arcade.Sprite);
         }
       }
