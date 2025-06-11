@@ -46,7 +46,7 @@ const GameCanvas: React.FC = () => {
         "Cuidado com os inimigos!",
         "Use X ou Shift para atacar!",
         "Colete todas as notas para a princesa!",
-        "Pule sobre as plataformas para encontrar atalhos!"
+        "Prossiga pelos perigos desse mundo para alcançar sua pequena!"
       ];
       dialogueText!: Phaser.GameObjects.Text;
       dialogueContainer!: Phaser.GameObjects.Container;
@@ -167,20 +167,24 @@ const GameCanvas: React.FC = () => {
           fontSize: '24px',
           color: '#fff',
           fontFamily: 'Arial',
-        }).setScrollFactor(0);
-
-        // this.healthText = this.add.text(16, 50, 'Vidas: 3', {
-        //   fontSize: '24px',
-        //   color: '#fff',
-        //   fontFamily: 'Arial',
-        // }).setScrollFactor(0);
+        }).setScrollFactor(0).setDepth(100); // ADICIONE .setDepth(100) AQUI
 
         this.lifeHearts = this.add.group();
 
-        const heartScale = 0.08; // Tamanho menor que o anterior (0.15)
-        const heartSpacing = 55; // Espaço entre os corações
-        const startX = 50; // Posição X inicial
-        const posY = 50; // Posição Y
+        const heartScale = 0.08;
+        const heartSpacing = 55;
+        const startX = 50;
+        const posY = 50;
+
+        // Cria 3 corações
+        for (let i = 0; i < 3; i++) {
+          const heart = this.add.image(startX + i * heartSpacing, posY, 'heart')
+            .setScrollFactor(0)
+            .setScale(heartScale)
+            .setOrigin(0, 0)
+            .setDepth(100); // ADICIONE .setDepth(100) AQUI
+          this.lifeHearts.add(heart);
+        }
 
         // Cria 3 corações (um para cada vida)
         for (let i = 0; i < 3; i++) {
@@ -378,7 +382,8 @@ const GameCanvas: React.FC = () => {
 
         // Criação do balão de diálogo
         this.createDialogueBubble(npc);
-
+        this.dialogueContainer.setDepth(50);
+        
         // Configura o timer para mudar os diálogos
         this.dialogueTimer = this.time.addEvent({
           delay: 4000, // Muda a cada 4 segundos
