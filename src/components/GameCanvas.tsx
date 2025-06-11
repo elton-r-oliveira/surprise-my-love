@@ -567,7 +567,7 @@ const GameCanvas: React.FC = () => {
       }
 
       updateHUD() {
-        this.hudText.setText(`Corações: ${this.score}`);
+        this.hudText.setText(`Notas Coletadas: ${this.score}`);
       }
     }
 
