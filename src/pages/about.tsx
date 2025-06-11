@@ -1,15 +1,28 @@
 import Link from 'next/link';
 import { useAudio } from '../contexts/AudioContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function About() {
     const { isPlaying, toggleAudio } = useAudio();
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         if (!isPlaying) {
             toggleAudio(); // Tenta iniciar a música ao carregar
         }
     }, []);
+
+    const handleBackToMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsTransitioning(true);
+        
+        // Animação de transição antes de redirecionar
+        setTimeout(() => {
+            router.push('/');
+        }, 500); // Tempo que coincide com a duração da animação
+    };
     
     return (
         <div style={{
@@ -28,7 +41,10 @@ export default function About() {
             color: 'white',
             textAlign: 'center',
             overflow: 'auto',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            opacity: isTransitioning ? 0.5 : 1,
+            transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
+            transition: 'all 0.5s ease-in-out'
         }}>
             <button
                 onClick={toggleAudio}
@@ -44,13 +60,22 @@ export default function About() {
                     width: 40,
                     height: 40,
                     fontSize: 20,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'transform 0.3s',
                 }}
             >
                 {isPlaying ? '🔊' : '🔇'}
             </button>
 
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '30px' }}>Sobre o Jogo</h1>
+            <h1 style={{ 
+                fontSize: '2.5rem', 
+                marginBottom: '30px',
+                transform: isTransitioning ? 'translateY(-20px)' : 'translateY(0)',
+                opacity: isTransitioning ? 0.7 : 1,
+                transition: 'all 0.5s ease-in-out'
+            }}>
+                Sobre o Jogo
+            </h1>
 
             <div style={{
                 maxWidth: '800px',
@@ -58,6 +83,9 @@ export default function About() {
                 padding: '30px',
                 borderRadius: '15px',
                 marginBottom: '30px',
+                transform: isTransitioning ? 'translateY(20px)' : 'translateY(0)',
+                opacity: isTransitioning ? 0.6 : 1,
+                transition: 'all 2.5s ease-in-out'
             }}>
                 <p style={{ fontSize: '1.2rem', lineHeight: '1.6', marginBottom: '20px' }}>
                     "My Little 💖" é um jogo especial criado para celebrar o Dia dos Namorados.
@@ -75,13 +103,14 @@ export default function About() {
                 position: 'absolute',
                 left: 0,
                 bottom: 0,
-                height: '80%', // Ajuste a altura conforme necessário
+                height: '80%',
                 width: '50%',
                 backgroundImage: 'url(/assets/images/esquerda.png)',
                 backgroundSize: 'contain',
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'left bottom', // Alinhada ao rodapé
-                opacity: 0.2,
+                backgroundPosition: 'left bottom',
+                opacity: isTransitioning ? 0.1 : 0.2,
+                transition: 'opacity 2.5s ease-in-out',
                 zIndex: 1
             }} />
 
@@ -90,30 +119,35 @@ export default function About() {
                 position: 'absolute',
                 right: 0,
                 bottom: 0,
-                height: '100%', // Ajuste a altura conforme necessário
+                height: '100%',
                 width: '40%',
                 backgroundImage: 'url(/assets/images/direita.png)',
                 backgroundSize: 'contain',
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right bottom', // Alinhada ao rodapé
-                opacity: 0.2,
+                backgroundPosition: 'right bottom',
+                opacity: isTransitioning ? 0.1 : 0.2,
+                transition: 'opacity 2.5s ease-in-out',
                 zIndex: 1
             }} />
 
             <Link href="/" passHref>
-                <button style={{
-                    padding: '15px 30px',
-                    fontSize: '1.2rem',
-                    background: 'white',
-                    color: '#a18cd1',
-                    border: 'none',
-                    borderRadius: '50px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                    transition: 'all 0.3s',
-                    position: 'relative', // Garante que fique acima das imagens
-                    zIndex: 2
-                }}>
+                <button 
+                    onClick={handleBackToMenu}
+                    style={{
+                        padding: '15px 30px',
+                        fontSize: '1.2rem',
+                        background: isTransitioning ? 'rgba(0, 0, 0, 0.8)' : 'white',
+                        color: '#a18cd1',
+                        border: 'none',
+                        borderRadius: '50px',
+                        cursor: 'pointer',
+                        boxShadow: isTransitioning ? '0 0 15px rgba(0, 0, 0, 0.6)' : '0 4px 8px rgba(0,0,0,0.2)',
+                        transition: 'all 2.5s ease-in-out',
+                        position: 'relative',
+                        zIndex: 2,
+                        transform: isTransitioning ? 'scale(0.95)' : 'scale(1)'
+                    }}
+                >
                     Voltar ao Menu
                 </button>
             </Link>

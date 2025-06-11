@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { useAudio } from '../contexts/AudioContext';
 import { useRouter } from 'next/router';
 import AnimatedHeart from '../components/AnimatedHeart';
+
 export default function Menu() {
     const { initializeAudio, isPlaying, toggleAudio } = useAudio();
     const [isLoading, setIsLoading] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -15,11 +17,19 @@ export default function Menu() {
     const handleStartGame = (e: React.MouseEvent) => {
         e.preventDefault();
         setIsLoading(true);
-
-        // Redireciona após 10 segundos
         setTimeout(() => {
             router.push('/game');
         }, 10000);
+    };
+
+    const handleAboutClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsTransitioning(true);
+
+        // Animação de transição antes de redirecionar
+        setTimeout(() => {
+            router.push('/about');
+        }, 500); // Tempo que coincide com a duração da animação
     };
 
     return (
@@ -70,10 +80,10 @@ export default function Menu() {
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
                 backgroundAttachment: 'fixed',
-                opacity: isLoading ? 0.5 : 1,
-                transition: 'opacity 0.3s'
+                opacity: isLoading || isTransitioning ? 0.5 : 1,
+                transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
+                transition: 'all 0.5s ease-in-out'
             }}>
-                {/* Restante do seu código permanece igual */}
                 <button
                     onClick={toggleAudio}
                     style={{
@@ -88,7 +98,8 @@ export default function Menu() {
                         width: 40,
                         height: 40,
                         fontSize: 20,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'transform 0.3s',
                     }}
                 >
                     {isPlaying ? '🔊' : '🔇'}
@@ -101,8 +112,11 @@ export default function Menu() {
                     right: 0,
                     bottom: 0,
                     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                    zIndex: 0
+                    zIndex: 0,
+                    opacity: isTransitioning ? 0.7 : 0.5,
+                    transition: 'opacity 0.5s ease-in-out'
                 }} />
+
                 <div style={{
                     position: 'relative',
                     zIndex: 2,
@@ -113,13 +127,18 @@ export default function Menu() {
                     padding: '40px',
                     backdropFilter: 'blur(2px)',
                     borderRadius: '20px',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)'
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    transform: isTransitioning ? 'translateY(-20px)' : 'translateY(0)',
+                    transition: 'all 0.5s ease-in-out'
                 }}>
                     <h1 style={{
                         fontSize: '3rem',
                         marginBottom: '20px',
                         textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                        color: '#fff'
+                        color: '#fff',
+                        opacity: isTransitioning ? 0.8 : 1,
+                        transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+                        transition: 'all 0.5s ease-in-out'
                     }}>
                         My Little 💖
                     </h1>
@@ -128,7 +147,9 @@ export default function Menu() {
                         fontSize: '1.2rem',
                         marginBottom: '40px',
                         maxWidth: '600px',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                        opacity: isTransitioning ? 0.7 : 1,
+                        transition: 'opacity 0.5s ease-in-out'
                     }}>
                         Uma aventura especial para o Dia dos Namorados
                     </p>
@@ -156,6 +177,8 @@ export default function Menu() {
                                     width: '100%',
                                     maxWidth: '300px',
                                     margin: '0 auto',
+                                    opacity: isTransitioning ? 0.5 : 1,
+                                    transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
                                 }}
                             >
                                 Começar Jogo
@@ -163,19 +186,24 @@ export default function Menu() {
                         </Link>
 
                         <Link href="/about" passHref>
-                            <button style={{
-                                fontSize: '1.2rem',
-                                padding: '10px 30px',
-                                borderRadius: '50px',
-                                border: '2px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s',
-                                width: '100%',
-                                maxWidth: '300px',
-                                margin: '0 auto',
-                            }}>
+                            <button
+                                onClick={handleAboutClick}
+                                style={{
+                                    fontSize: '1.2rem',
+                                    padding: '10px 30px',
+                                    borderRadius: '50px',
+                                    border: '2px solid white',
+                                    background: isTransitioning ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.5s ease-in-out',
+                                    width: '100%',
+                                    maxWidth: '300px',
+                                    margin: '0 auto',
+                                    transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
+                                    boxShadow: isTransitioning ? '0 0 15px rgba(0, 0, 0, 0.4)' : 'none'
+                                }}
+                            >
                                 Sobre o Jogo
                             </button>
                         </Link>
@@ -184,7 +212,9 @@ export default function Menu() {
                     <div style={{
                         marginTop: '50px',
                         fontSize: '0.9rem',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                        opacity: isTransitioning ? 0.5 : 1,
+                        transition: 'opacity 0.5s ease-in-out'
                     }}>
                         <p>Feito com 💖 para você</p>
                     </div>
