@@ -1,10 +1,65 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { useAudio } from '../contexts/AudioContext'; // Importe o hook useAudio
 
 const GameCanvas: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
-  const { stopAudio } = useAudio(); // Obtenha a função stopAudio do contexto
+  const { stopAudio } = useAudio();
+  const [currentNote, setCurrentNote] = useState<string | null>(null);
+  const [showNote, setShowNote] = useState(false);
+  const [isGamePaused, setIsGamePaused] = useState(false);
+
+  const closeNote = () => {
+    setShowNote(false);
+    setCurrentNote(null);
+
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('MainScene');
+      scene.physics.resume();
+      scene.scene.resume();
+      scene.sound.resumeAll();
+    }
+
+    setIsGamePaused(false);
+  };
+
+  // Adicione no início do arquivo, antes do componente
+  const notePaperStyle = {
+    position: 'absolute' as const,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '90%',
+    maxWidth: '600px',
+    minHeight: '800px',
+    backgroundImage: 'url("/assets/sprites/note_paper.png")', // Adicione uma imagem de papel
+    backgroundSize: 'cover',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center',
+    padding: '60px 40px',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: '#5a3e2b', // Cor de texto vintage
+    fontFamily: '"Courier New", monospace',
+    fontSize: '18px',
+    lineHeight: '1.6',
+    textAlign: 'center' as const,
+  };
+
+  const closeButtonStyle = {
+    marginTop: '200px',
+    padding: '10px 100px',
+    backgroundColor: '#8b5a2b',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", monospace',
+    fontSize: '16px',
+  };
 
   useEffect(() => {
     // Pare a música do menu antes de iniciar o jogo
@@ -13,9 +68,11 @@ const GameCanvas: React.FC = () => {
     if (gameRef.current) return;
 
     const messages: string[] = [
-      'Eu te amo porque você me entende como ninguém.',
-      'Eu te amo porque seu sorriso ilumina tudo.',
-      'Eu te amo porque ao seu lado tudo é melhor.',
+      'Olá minha pequena, primeiramente\n quero te agradecer por me fazer muito feliz!\n Com você eu me sinto mais vivo, \ncom mais vontade de curtir a vida, \ncom você eu esqueço os meus problemas',
+      'Você foi o meu inesperado que eu\n mas esperava e não sabia\n Obrigado por me mostrar como \naproveitar as pequenas \ncoisas da vida, apreciar\n cada detalhe e desfrutrar de\n de momentos simples e maravilhosos',
+      'Eu te amo de todo o\n meu coração, e quero te proporcionar tudo\n de melhor que eu puder\n quero que sempre conte comigo\n seja para qualquer situação \n você se tornou parte da minha vida,\n você se tornou a minha felicidade',
+      'Eu te amo porque ao seu lado tudo é melhor.\n seja dormir junto para esquentar meus\n pés que congelam, fofocar na academia\n inventando nomes, passar o dia tirando a naninha\n da tarde, ou simplesmente ficar te admirando\n por todo o dia apreciando cada\n detalhe seu.',
+      'Espero poder te fazer a pessoa \n mais feliz possivel, você é\n incrível, obrigado por me dizer sim 💖',
     ];
 
     class MainScene extends Phaser.Scene {
@@ -41,6 +98,20 @@ const GameCanvas: React.FC = () => {
       lastDamageTime: number = 0;
       lifeHearts!: Phaser.GameObjects.Group;
       clouds!: Phaser.GameObjects.Group;
+      currentDialogueIndex: number = 0;
+      npcDialogues: string[] = [
+        "Cuidado com os inimigos!",
+        "Use X ou Shift para atacar!",
+        "Colete todas as notas para a princesa!",
+        "Prossiga pelos perigos desse mundo para alcançar sua pequena!"
+      ];
+      dialogueText!: Phaser.GameObjects.Text;
+      dialogueContainer!: Phaser.GameObjects.Container;
+      isTyping: boolean = false;
+      currentDialogue: string = "";
+      dialogueTimer!: Phaser.Time.TimerEvent;
+      typingTimer!: Phaser.Time.TimerEvent;
+
       constructor() {
         super('MainScene');
       }
@@ -153,20 +224,14 @@ const GameCanvas: React.FC = () => {
           fontSize: '24px',
           color: '#fff',
           fontFamily: 'Arial',
-        }).setScrollFactor(0);
-
-        // this.healthText = this.add.text(16, 50, 'Vidas: 3', {
-        //   fontSize: '24px',
-        //   color: '#fff',
-        //   fontFamily: 'Arial',
-        // }).setScrollFactor(0);
+        }).setScrollFactor(0).setDepth(100); // ADICIONE .setDepth(100) AQUI
 
         this.lifeHearts = this.add.group();
 
-        const heartScale = 0.08; // Tamanho menor que o anterior (0.15)
-        const heartSpacing = 55; // Espaço entre os corações
-        const startX = 50; // Posição X inicial
-        const posY = 50; // Posição Y
+        const heartScale = 0.08;
+        const heartSpacing = 55;
+        const startX = 50;
+        const posY = 50;
 
         // Cria 3 corações (um para cada vida)
         for (let i = 0; i < 3; i++) {
@@ -234,7 +299,15 @@ const GameCanvas: React.FC = () => {
         this.hearts = this.physics.add.group({ classType: Phaser.Physics.Arcade.Sprite });
 
         messages.forEach((msg, i) => {
-          const heart = this.hearts.create(400 + i * 400, 500, 'papel') as Phaser.Physics.Arcade.Sprite;
+          // Exemplo: posições mais espalhadas e em diferentes alturas
+          const xPositions = [1000, 2300, 3000, 3800, 4100]; // Posições X personalizadas
+          const yPositions = [600, 500, 650, 500, 600]; // Posições Y personalizadas
+
+          const heart = this.hearts.create(
+            xPositions[i % xPositions.length],
+            yPositions[i % yPositions.length],
+            'papel'
+          ) as Phaser.Physics.Arcade.Sprite;
           heart.setData('message', msg);
           heart.setScale(0.1);
           heart.setImmovable(true);
@@ -296,10 +369,21 @@ const GameCanvas: React.FC = () => {
         this.physics.add.collider(this.enemies, this.ground);
 
         // Coração coletado
+        // Dentro da classe MainScene, modifique a colisão com os corações:
         this.physics.add.overlap(this.player, this.hearts, (_player, heart) => {
           const h = heart as Phaser.Physics.Arcade.Sprite;
           const msg = h.getData('message') as string;
-          this.showMessage(msg);
+
+          // Pausa completa do jogo
+          this.physics.pause();
+          this.scene.pause();
+          this.sound.pauseAll();
+
+          // Mostra a nota
+          setCurrentNote(msg);
+          setShowNote(true);
+          setIsGamePaused(true);
+
           h.destroy();
           this.score += 1;
           this.updateHUD();
@@ -362,30 +446,22 @@ const GameCanvas: React.FC = () => {
         npc.setImmovable(true);
         (npc.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
-        // Diálogo NPC
-        const npcText = this.add.text(0, 0, 'Cuidado com os inimigos! Use X ou Shift para atacar!', {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: '#000',
-          align: 'center',
-          wordWrap: { width: 240 },
+        // Criação do balão de diálogo
+        this.createDialogueBubble(npc);
+        this.dialogueContainer.setDepth(50);
+
+        // Configura o timer para mudar os diálogos
+        this.dialogueTimer = this.time.addEvent({
+          delay: 4000, // Muda a cada 4 segundos
+          callback: this.nextDialogue,
+          callbackScope: this,
+          loop: true
         });
 
-        const bubble = this.add.graphics();
-        const padding = 10;
-        const textWidth = npcText.width + padding * 2;
-        const textHeight = npcText.height + padding * 2;
+        // Mostra o primeiro diálogo
+        this.showDialogue(this.npcDialogues[0]);
 
-        bubble.fillStyle(0xffffff, 1);
-        bubble.fillRoundedRect(0, 0, textWidth, textHeight, 12);
-
-        const balloon = this.add.container(npc.x, npc.y - 120, [bubble, npcText]);
-        balloon.setDepth(1);
-        npcText.setPosition(padding, padding);
-
-        this.events.on('update', () => {
-          balloon.setPosition(npc.x, npc.y - 90);
-        });
+        this.showDialogue(this.npcDialogues[this.currentDialogueIndex]);
 
         // Física
         this.physics.add.collider(this.player, platforms);
@@ -394,16 +470,111 @@ const GameCanvas: React.FC = () => {
         this.physics.world.setBounds(0, 0, groundWidth * groundSegments, 800, true, true, true, true);
         this.player.setCollideWorldBounds(true, undefined, undefined, true);
 
-        // No método create(), adicione no final:
+        // No método create(), atualize o evento restart:
         this.events.on('restart', () => {
-          this.lifeHearts.clear(true, true);
+          this.lifeHearts.clear(true, true); // Limpa completamente o grupo
+
+          // Recria os corações com as mesmas propriedades originais
           for (let i = 0; i < 3; i++) {
-            const heart = this.add.image(16 + i * 30, 50, 'heart')
+            const heart = this.add.image(16 + i * heartSpacing, posY, 'heart')
               .setScrollFactor(0)
-              .setScale(0.15);
+              .setScale(heartScale)
+              .setOrigin(0, 0)
+              .setDepth(100);
             this.lifeHearts.add(heart);
           }
         });
+      }
+
+      createDialogueBubble(npc: Phaser.Physics.Arcade.Sprite) {
+        // Cria o texto do diálogo (inicialmente vazio)
+        this.dialogueText = this.add.text(0, 0, "", {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#000',
+          align: 'center',
+          wordWrap: { width: 240 }
+        });
+
+        // Cria o balão de fala
+        const bubble = this.add.graphics();
+        const padding = 10;
+        const textWidth = 260; // Largura fixa para o balão
+        const textHeight = this.dialogueText.height + padding * 2;
+
+        bubble.fillStyle(0xffffff, 1);
+        bubble.fillRoundedRect(0, 0, textWidth, textHeight, 12);
+
+        // Cria o container que agrupa balão e texto
+        this.dialogueContainer = this.add.container(npc.x, npc.y - 120, [bubble, this.dialogueText]);
+        this.dialogueContainer.setDepth(1);
+        this.dialogueText.setPosition(padding, padding);
+
+        // Atualiza a posição do balão conforme o NPC se move
+        this.events.on('update', () => {
+          this.dialogueContainer.setPosition(npc.x, npc.y - 90);
+
+          // Redimensiona o balão conforme o texto aumenta
+          const newHeight = this.dialogueText.height + padding * 2;
+          bubble.clear();
+          bubble.fillStyle(0xffffff, 1);
+          bubble.fillRoundedRect(0, 0, textWidth, newHeight, 12);
+        });
+      }
+
+      showDialogue(text: string) {
+        // Limpa qualquer animação de digitação em andamento
+        if (this.typingTimer) {
+          this.typingTimer.destroy();
+        }
+
+        this.currentDialogue = text;
+        this.dialogueText.setText("");
+        this.isTyping = true;
+
+        let i = 0;
+        this.typingTimer = this.time.addEvent({
+          delay: 50, // Velocidade da digitação (50ms por letra)
+          callback: () => {
+            // Adiciona apenas uma letra por vez
+            this.dialogueText.setText(this.currentDialogue.substring(0, i + 1));
+            i++;
+
+            if (i >= this.currentDialogue.length) {
+              this.isTyping = false;
+              // Não destruímos o timer imediatamente para evitar problemas
+            }
+          },
+          callbackScope: this,
+          repeat: text.length - 1
+        });
+      }
+
+      nextDialogue() {
+        // Só avança se não estiver digitando
+        if (this.isTyping) {
+          // Se estiver digitando, completa o texto imediatamente
+          this.typingTimer.destroy();
+          this.dialogueText.setText(this.currentDialogue);
+          this.isTyping = false;
+
+          // Espera um pouco antes de mostrar o próximo diálogo
+          this.time.delayedCall(500, () => {
+            this.advanceToNextDialogue();
+          });
+          return;
+        }
+
+        this.advanceToNextDialogue();
+      }
+
+      advanceToNextDialogue() {
+        this.currentDialogueIndex++;
+        if (this.currentDialogueIndex >= this.npcDialogues.length) {
+          this.currentDialogueIndex = 0;
+        }
+
+        this.showDialogue(this.npcDialogues[this.currentDialogueIndex]);
       }
 
       spawnEnemies() {
@@ -505,9 +676,15 @@ const GameCanvas: React.FC = () => {
 
         // Remove o último coração visível
         const hearts = this.lifeHearts.getChildren();
-        if (hearts.length > 0) {
-          const lastHeart = hearts[hearts.length - 1] as Phaser.GameObjects.Image;
-          lastHeart.destroy();
+        if (hearts.length > 0 && this.health < hearts.length) {
+          const heartToRemove = hearts[this.health] as Phaser.GameObjects.Image; // Corrigido para usar this.health
+          this.tweens.add({
+            targets: heartToRemove,
+            scale: 0,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => heartToRemove.destroy()
+          });
         }
 
         // Restante do método permanece igual...
@@ -570,7 +747,7 @@ const GameCanvas: React.FC = () => {
 
 
       update() {
-
+        if (this.scene.isPaused()) return;
         // Atualizar nuvens - versão corretamente tipada
         this.clouds.getChildren().forEach((gameObject: Phaser.GameObjects.GameObject) => {
           const cloud = gameObject as Phaser.GameObjects.Image;
@@ -652,8 +829,43 @@ const GameCanvas: React.FC = () => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#111',
+          position: 'relative',
         }}
       />
+
+      {showNote && currentNote && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          zIndex: 999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <div style={notePaperStyle}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              overflowY: 'auto',
+              padding: '20px'
+            }}>
+              {currentNote.split('\n').map((line, i) => (
+                <p key={i} style={{ margin: '10px 0' }}>{line}</p>
+              ))}
+            </div>
+            <button
+              onClick={closeNote}
+              style={closeButtonStyle}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
